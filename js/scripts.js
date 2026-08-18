@@ -4,6 +4,9 @@ const todoList = document.querySelector("#todo-list");
 const editForm = document.querySelector("#edit-form");
 const editInput = document.querySelector("#edit-input");
 const cancelEditBtn = document.querySelector("#cancel-edit-btn");
+const searchInput = document.querySelector("#search-input");
+const eraseButton = document.querySelector("#erase-button");
+const filterSelect = document.querySelector("#filter-select");
 
 let oldInputValue;
 
@@ -35,6 +38,8 @@ const saveTodo = (text) => {
 
     todoInput.value = "";
     todoInput.focus();
+
+    syncStorage();
 }
 
 const toggleForms = () => {
@@ -54,6 +59,8 @@ const updateTodo = (text) => {
             todoTitle.innerText = text
         }
     });
+
+    syncStorage();
 }
 
 todoForm.addEventListener("submit", (e) => {
@@ -78,10 +85,12 @@ document.addEventListener("click", (e) => {
 
     if (targetEl.classList.contains("finish-todo")) {
         parentEl.classList.toggle("done");
+        syncStorage();
     }
 
     if (targetEl.classList.contains("remove-todo")) {
         parentEl.remove();
+        syncStorage();
     }
 
     if (targetEl.classList.contains("edit-todo")) {
@@ -109,3 +118,80 @@ editForm.addEventListener("submit", (e) => {
 
     toggleForms()
 })
+
+const syncStorage = () => {
+    const todos = document.querySelectorAll(".todo");
+    const todosToSave = [];
+
+    todos.forEach((todo) => {
+        todosToSave.push({
+            text: todo.querySelector("h3").innerText,
+            done: todo.classList.contains("done"),
+        });
+    });
+
+    localStorage.setItem("todos", JSON.stringify(todosToSave));
+}
+
+const loadTodos = () => {
+    const todos = JSON.parse(localStorage.getItem("todos"));
+
+    if (!todos) {
+        syncStorage();
+        return;
+    }
+
+    todoList.innerHTML = "";
+
+    todos.forEach((todo) => {
+        saveTodo(todo.text);
+
+        if (todo.done) {
+            todoList.lastChild.classList.add("done");
+        }
+    });
+}
+
+searchInput.addEventListener("keyup", () => {
+    const searchValue = searchInput.value.toLowerCase();
+
+    const todos = document.querySelectorAll(".todo");
+
+    todos.forEach((todo) => {
+        const todoTitle = todo.querySelector("h3").innerText.toLowerCase();
+
+        if (todoTitle.includes(searchValue)) {
+            todo.style.display = "flex";
+        } else {
+            todo.style.display = "none";
+        }
+    });
+})
+
+eraseButton.addEventListener("click", (e) => {
+    e.preventDefault();
+
+    searchInput.value = "";
+    searchInput.dispatchEvent(new Event("keyup"));
+})
+
+filterSelect.addEventListener("change", () => {
+    const filterValue = filterSelect.value;
+
+    const todos = document.querySelectorAll(".todo");
+
+    todos.forEach((todo) => {
+        switch (filterValue) {
+            case "done":
+                todo.style.display = todo.classList.contains("done") ? "flex" : "none";
+                break;
+            case "todo":
+                todo.style.display = !todo.classList.contains("done") ? "flex" : "none";
+                break;
+            default:
+                todo.style.display = "flex";
+        }
+    });
+})
+
+loadTodos();
